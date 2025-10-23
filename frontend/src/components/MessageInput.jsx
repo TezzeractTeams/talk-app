@@ -464,6 +464,17 @@ const MessageInput = ({ selectedChat }) => {
               <Paperclip className="w-5 h-5" />
             </button>
           )}
+
+          {/* Mobile Audio Recording Button */}
+          {isMobile && (
+            <button
+              type="button"
+              className="sm:hidden w-10 h-10 rounded-lg bg-neutral-800 text-neutral-400 hover:bg-neutral-700 flex items-center justify-center transition-all"
+              onClick={() => setShowAudioRecorder(true)}
+            >
+              <Mic className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Send Button */}
