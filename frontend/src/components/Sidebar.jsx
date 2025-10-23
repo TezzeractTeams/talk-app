@@ -30,6 +30,19 @@ const Sidebar = () => {
   });
   const [contextMenu, setContextMenu] = useState(null);
 
+  // Force sidebar to be open on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setOpen(true);
+      }
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     getUsers();
     getGroups();
@@ -196,7 +209,7 @@ const Sidebar = () => {
             </div>
             <button
               onClick={() => setOpen(!open)}
-              className="p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+              className="hidden md:flex p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
             >
               {open ? (
                 <ChevronLeft className="h-5 w-5 text-neutral-300" />
@@ -328,7 +341,7 @@ const Sidebar = () => {
                       alt={chat.name}
                       className={`w-10 h-10 md:w-12 md:h-12 rounded-full object-cover ring-2 transition-all ${
                         isSelected 
-                          ? "ring-blue-500" 
+                          ? "ring-neutral-600" 
                           : hasUnread 
                           ? "ring-neutral-600" 
                           : "ring-neutral-800"

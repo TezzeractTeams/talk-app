@@ -7,6 +7,19 @@ import { getReceiverSocketId, io } from "../lib/socket.js";
 // Helper function to upload to Cloudinary
 const uploadToCloudinary = async (file, folder) => {
   try {
+    // Check if Cloudinary is configured
+    if (!process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME === 'your_cloud_name_here') {
+      console.log("Cloudinary not configured, using local storage fallback");
+      // For development, you can store files locally or use a different approach
+      // For now, we'll return a mock response
+      return {
+        url: `data:image/jpeg;base64,${file.split(',')[1] || file}`,
+        publicId: `local_${Date.now()}`,
+        format: 'jpeg',
+        bytes: Buffer.from(file.split(',')[1] || file, 'base64').length,
+      };
+    }
+
     const uploadResponse = await cloudinary.uploader.upload(file, {
       resource_type: "auto",
       folder: folder,
