@@ -466,16 +466,32 @@ export const useChatStore = create((set, get) => ({
       const isMessageForDifferentChat = (isGroup && targetChatId !== chatId) || (!isGroup && targetChatId !== chatId);
       const isMessageFromOther = senderId !== authUserId;
       
+      console.log('Notification check:', {
+        isMessageForDifferentChat,
+        isMessageFromOther,
+        targetChatId,
+        currentChatId: chatId,
+        senderId,
+        authUserId,
+        isGroup
+      });
+      
       if (isMessageForDifferentChat && isMessageFromOther) {
         get().incrementUnreadCount(targetChatId);
         
         // Show notification for new message
         const settings = getNotificationSettings();
+        console.log('Notification settings:', settings);
+        
         if (settings.enabled && !settings.doNotDisturb) {
           const senderName = actualMessage.senderId?.fullName || 'Someone';
           const chatType = isGroup ? 'group' : 'user';
           
-          if (shouldShowNotification(actualMessage, chatId, authUserId)) {
+          const shouldShow = shouldShowNotification(actualMessage, chatId, authUserId);
+          console.log('Should show notification:', shouldShow);
+          
+          if (shouldShow) {
+            console.log('Creating notification for message from:', senderName);
             createMessageNotification(actualMessage, senderName, chatType);
             
             // Play sound if enabled

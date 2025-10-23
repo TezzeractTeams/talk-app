@@ -40,7 +40,20 @@ export const createNotification = (title, options = {}) => {
   };
 
   try {
-    return new Notification(title, defaultOptions);
+    const notification = new Notification(title, defaultOptions);
+    
+    // Add click handler to focus window and close notification
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+      
+      // If there's a specific chat to open, we could navigate here
+      if (options.data?.chatId) {
+        console.log('Notification clicked for chat:', options.data.chatId);
+      }
+    };
+    
+    return notification;
   } catch (error) {
     console.error('Error creating notification:', error);
     return null;
@@ -71,17 +84,30 @@ export const createMessageNotification = (message, senderName, chatType = 'user'
 
   const title = isGroup ? `${senderName} (Group)` : senderName;
 
+  // Use message ID in tag to make each notification unique
+  // This prevents notifications from being silently replaced
+  const notificationTag = `message-${message._id || Date.now()}`;
+  
+  console.log('Creating notification:', {
+    title,
+    body,
+    tag: notificationTag,
+    chatId: message.receiverId || message.groupId
+  });
+
   return createNotification(title, {
     body,
     icon,
     badge: '/chat.svg',
-    tag: `chat-${message.receiverId || message.groupId}`,
+    tag: notificationTag,
     data: {
       chatId: message.receiverId || message.groupId,
       messageId: message._id,
       isGroup,
       url: '/'
-    }
+    },
+    requireInteraction: false,
+    silent: false
   });
 };
 
@@ -114,22 +140,38 @@ export const clearBadge = async () => {
 };
 
 export const shouldShowNotification = (message, currentChatId, authUserId) => {
+  const senderId = message.senderId?._id || message.senderId;
+  
   // Don't show notification for own messages
-  if (message.senderId._id === authUserId || message.senderId === authUserId) {
+  if (senderId === authUserId) {
+    console.log('Blocking notification: own message');
     return false;
   }
 
   // Don't show if user is currently viewing this chat and app is focused
   const chatId = message.receiverId || message.groupId;
-  if (chatId === currentChatId && document.hasFocus()) {
+  const isViewingChat = chatId === currentChatId;
+  const hasFocus = document.hasFocus();
+  
+  console.log('Notification view check:', {
+    chatId,
+    currentChatId,
+    isViewingChat,
+    hasFocus
+  });
+  
+  if (isViewingChat && hasFocus) {
+    console.log('Blocking notification: viewing chat and app focused');
     return false;
   }
 
   // Check if notifications are enabled
   if (Notification.permission !== 'granted') {
+    console.log('Blocking notification: permission not granted');
     return false;
   }
 
+  console.log('Notification allowed');
   return true;
 };
 
