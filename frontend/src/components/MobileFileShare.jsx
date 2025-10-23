@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
 import { Camera, Video, Mic, File, Image, Share, X } from "lucide-react";
+import AudioRecorder from "./AudioRecorder";
 
 const MobileFileShare = ({ onFileSelect, onClose }) => {
   const [isSharing, setIsSharing] = useState(false);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const cameraInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -102,17 +104,8 @@ const MobileFileShare = ({ onFileSelect, onClose }) => {
       label: "Audio",
       color: "text-pink-400",
       bg: "bg-pink-900/20",
-      onClick: () => handleFileInput(audioInputRef),
-      input: (
-        <input
-          type="file"
-          accept="audio/*"
-          capture="microphone"
-          className="hidden"
-          ref={audioInputRef}
-          onChange={(e) => onFileSelect(e.target.files[0])}
-        />
-      )
+      onClick: () => setShowAudioRecorder(true),
+      input: null
     },
     {
       icon: File,
@@ -189,6 +182,23 @@ const MobileFileShare = ({ onFileSelect, onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* Audio Recorder Modal */}
+      {showAudioRecorder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-neutral-900 rounded-xl border border-neutral-700">
+            <AudioRecorder
+              onSend={(audioFile) => {
+                onFileSelect(audioFile);
+                setShowAudioRecorder(false);
+                onClose();
+              }}
+              onCancel={() => setShowAudioRecorder(false)}
+              onClose={() => setShowAudioRecorder(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

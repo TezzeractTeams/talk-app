@@ -3,6 +3,7 @@ import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X, Paperclip, File, Reply, Camera, Video, Mic } from "lucide-react";
 import toast from "react-hot-toast";
 import MobileFilePreview from "./MobileFilePreview";
+import AudioRecorder from "./AudioRecorder";
 
 const MessageInput = ({ selectedChat }) => {
   const [text, setText] = useState("");
@@ -10,6 +11,7 @@ const MessageInput = ({ selectedChat }) => {
   const [filePreview, setFilePreview] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileOptions, setShowMobileOptions] = useState(false);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -226,6 +228,35 @@ const MessageInput = ({ selectedChat }) => {
     }
   };
 
+  // Handle audio recording
+  const handleAudioSend = async (audioFile) => {
+    if (!selectedChat) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const messageData = {
+          text: "",
+          file: reader.result,
+          fileName: audioFile.name,
+          fileType: audioFile.type,
+        };
+
+        await sendChatMessage(selectedChat._id, selectedChat.type === 'group', messageData);
+        setShowAudioRecorder(false);
+        toast.success("Voice message sent");
+      };
+      reader.readAsDataURL(audioFile);
+    } catch (error) {
+      console.error("Failed to send audio message:", error);
+      toast.error("Failed to send voice message");
+    }
+  };
+
+  const handleAudioCancel = () => {
+    setShowAudioRecorder(false);
+  };
+
   return (
     <div className="border-t border-neutral-800 p-2 md:p-3">
       {/* Reply Preview */}
@@ -414,6 +445,15 @@ const MessageInput = ({ selectedChat }) => {
             <Paperclip className="w-5 h-5" />
           </button>
 
+          {/* Audio Recording Button */}
+          <button
+            type="button"
+            className="hidden sm:flex w-10 h-10 rounded-lg items-center justify-center transition-all bg-neutral-800 text-neutral-400 hover:bg-neutral-700"
+            onClick={() => setShowAudioRecorder(true)}
+          >
+            <Mic className="w-5 h-5" />
+          </button>
+
           {/* Mobile Upload Button */}
           {isMobile && (
             <button
@@ -538,6 +578,19 @@ const MessageInput = ({ selectedChat }) => {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audio Recorder Modal */}
+      {showAudioRecorder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-neutral-900 rounded-xl border border-neutral-700">
+            <AudioRecorder
+              onSend={handleAudioSend}
+              onCancel={handleAudioCancel}
+              onClose={() => setShowAudioRecorder(false)}
+            />
           </div>
         </div>
       )}

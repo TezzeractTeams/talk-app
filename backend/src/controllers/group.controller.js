@@ -160,6 +160,12 @@ export const sendGroupMessage = async (req, res) => {
 
     // Handle file upload
     if (req.body.file) {
+      console.log("Processing group file upload:", {
+        fileName: req.body.fileName,
+        fileType: req.body.fileType,
+        fileSize: req.body.file ? req.body.file.length : 0
+      });
+      
       const uploadResponse = await uploadToCloudinary(req.body.file, "group-files");
       
       const fileName = req.body.fileName || "file";
@@ -175,6 +181,8 @@ export const sendGroupMessage = async (req, res) => {
         type: fileType,
         extension: fileExtension,
       };
+      
+      console.log("Group file processed successfully:", fileData);
     }
 
     const newMessage = new Message({

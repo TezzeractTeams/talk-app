@@ -7,17 +7,48 @@ import { getReceiverSocketId, io } from "../lib/socket.js";
 // Helper function to upload to Cloudinary
 const uploadToCloudinary = async (file, folder) => {
   try {
+    console.log("uploadToCloudinary called with:", {
+      folder,
+      fileLength: file.length,
+      isBase64: file.startsWith('data:'),
+      mimeType: file.split(',')[0]
+    });
+    
     // Check if Cloudinary is configured
     if (!process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME === 'your_cloud_name_here') {
       console.log("Cloudinary not configured, using local storage fallback");
       // For development, you can store files locally or use a different approach
       // For now, we'll return a mock response
-      return {
-        url: `data:image/jpeg;base64,${file.split(',')[1] || file}`,
+      const base64Data = file.split(',')[1] || file;
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      console.log("Base64 data length:", base64Data.length);
+      console.log("Buffer size:", buffer.length);
+      
+      // Determine file type from the data URL
+      let format = 'webm';
+      let mimeType = 'audio/webm';
+      
+      if (file.startsWith('data:audio/mp4')) {
+        format = 'mp4';
+        mimeType = 'audio/mp4';
+      } else if (file.startsWith('data:audio/wav')) {
+        format = 'wav';
+        mimeType = 'audio/wav';
+      } else if (file.startsWith('data:image/')) {
+        format = 'jpeg';
+        mimeType = 'image/jpeg';
+      }
+      
+      const result = {
+        url: `data:${mimeType};base64,${base64Data}`,
         publicId: `local_${Date.now()}`,
-        format: 'jpeg',
-        bytes: Buffer.from(file.split(',')[1] || file, 'base64').length,
+        format: format,
+        bytes: buffer.length,
       };
+      
+      console.log("Fallback result:", result);
+      return result;
     }
 
     const uploadResponse = await cloudinary.uploader.upload(file, {
@@ -115,21 +146,36 @@ export const sendMessage = async (req, res) => {
 
     // Handle file upload
     if (req.body.file) {
-      const uploadResponse = await uploadToCloudinary(req.body.file, "chat-files");
+      console.log("Processing file upload:", {
+        fileName: req.body.fileName,
+        fileType: req.body.fileType,
+        fileSize: req.body.file ? req.body.file.length : 0,
+        isBase64: req.body.file.startsWith('data:'),
+        mimeType: req.body.file.split(',')[0] || 'unknown'
+      });
       
-      const fileName = req.body.fileName || "file";
-      const fileExtension = path.extname(fileName).slice(1) || uploadResponse.format;
-      const fileType = req.body.fileType || `application/${fileExtension}`;
-      const fileSize = uploadResponse.bytes;
+      try {
+        const uploadResponse = await uploadToCloudinary(req.body.file, "chat-files");
+        
+        const fileName = req.body.fileName || "file";
+        const fileExtension = path.extname(fileName).slice(1) || uploadResponse.format;
+        const fileType = req.body.fileType || `application/${fileExtension}`;
+        const fileSize = uploadResponse.bytes;
 
-      fileData = {
-        url: uploadResponse.url,
-        publicId: uploadResponse.publicId,
-        name: fileName,
-        size: fileSize,
-        type: fileType,
-        extension: fileExtension,
-      };
+        fileData = {
+          url: uploadResponse.url,
+          publicId: uploadResponse.publicId,
+          name: fileName,
+          size: fileSize,
+          type: fileType,
+          extension: fileExtension,
+        };
+        
+        console.log("File processed successfully:", fileData);
+      } catch (uploadError) {
+        console.error("File upload error:", uploadError);
+        throw new Error(`File upload failed: ${uploadError.message}`);
+      }
     }
 
     const newMessage = new Message({
@@ -160,6 +206,7 @@ export const sendMessage = async (req, res) => {
     res.status(201).json(newMessage);
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
+    console.log("Full error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
