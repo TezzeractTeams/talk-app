@@ -1,0 +1,218 @@
+// Notification utilities for push notifications
+
+export const isNotificationSupported = () => {
+  return 'Notification' in window && 'serviceWorker' in navigator;
+};
+
+export const getNotificationPermission = () => {
+  if (!isNotificationSupported()) return 'unsupported';
+  return Notification.permission;
+};
+
+export const requestNotificationPermission = async () => {
+  if (!isNotificationSupported()) {
+    return { granted: false, error: 'Notifications not supported' };
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    return { 
+      granted: permission === 'granted', 
+      permission 
+    };
+  } catch (error) {
+    console.error('Error requesting notification permission:', error);
+    return { granted: false, error: error.message };
+  }
+};
+
+export const createNotification = (title, options = {}) => {
+  if (!isNotificationSupported() || Notification.permission !== 'granted') {
+    return null;
+  }
+
+  const defaultOptions = {
+    icon: '/chat.svg',
+    badge: '/chat.svg',
+    vibrate: [200, 100, 200],
+    requireInteraction: false,
+    ...options
+  };
+
+  try {
+    return new Notification(title, defaultOptions);
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    return null;
+  }
+};
+
+export const createMessageNotification = (message, senderName, chatType = 'user') => {
+  const isGroup = chatType === 'group';
+  const icon = message.senderId?.profilePic || '/avatar.png';
+  const settings = getNotificationSettings();
+  
+  let body = message.text || '';
+  if (message.image) body = '📷 Image';
+  if (message.file) {
+    if (message.file.type?.startsWith('audio/')) {
+      body = '🎵 Voice message';
+    } else if (message.file.type?.startsWith('video/')) {
+      body = '🎬 Video';
+    } else {
+      body = '📎 ' + message.file.name;
+    }
+  }
+
+  // Hide message content if preview is disabled
+  if (!settings.preview) {
+    body = 'New message';
+  }
+
+  const title = isGroup ? `${senderName} (Group)` : senderName;
+
+  return createNotification(title, {
+    body,
+    icon,
+    badge: '/chat.svg',
+    tag: `chat-${message.receiverId || message.groupId}`,
+    data: {
+      chatId: message.receiverId || message.groupId,
+      messageId: message._id,
+      isGroup,
+      url: '/'
+    }
+  });
+};
+
+export const isBadgeSupported = () => {
+  return 'setAppBadge' in navigator && 'clearAppBadge' in navigator;
+};
+
+export const setBadgeCount = async (count) => {
+  if (!isBadgeSupported()) return;
+
+  try {
+    if (count > 0) {
+      await navigator.setAppBadge(count);
+    } else {
+      await navigator.clearAppBadge();
+    }
+  } catch (error) {
+    console.error('Error setting badge:', error);
+  }
+};
+
+export const clearBadge = async () => {
+  if (!isBadgeSupported()) return;
+
+  try {
+    await navigator.clearAppBadge();
+  } catch (error) {
+    console.error('Error clearing badge:', error);
+  }
+};
+
+export const shouldShowNotification = (message, currentChatId, authUserId) => {
+  // Don't show notification for own messages
+  if (message.senderId._id === authUserId || message.senderId === authUserId) {
+    return false;
+  }
+
+  // Don't show if user is currently viewing this chat and app is focused
+  const chatId = message.receiverId || message.groupId;
+  if (chatId === currentChatId && document.hasFocus()) {
+    return false;
+  }
+
+  // Check if notifications are enabled
+  if (Notification.permission !== 'granted') {
+    return false;
+  }
+
+  return true;
+};
+
+export const isAppInBackground = () => {
+  return document.hidden || !document.hasFocus();
+};
+
+export const getNotificationSettings = () => {
+  const settings = localStorage.getItem('notificationSettings');
+  if (settings) {
+    return JSON.parse(settings);
+  }
+  
+  // Default settings
+  return {
+    enabled: true,
+    sound: true,
+    preview: true,
+    badge: true,
+    doNotDisturb: false
+  };
+};
+
+export const saveNotificationSettings = (settings) => {
+  localStorage.setItem('notificationSettings', JSON.stringify(settings));
+};
+
+export const registerServiceWorkerNotifications = async () => {
+  if (!('serviceWorker' in navigator)) {
+    console.log('Service Worker not supported');
+    return false;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    console.log('Service Worker registered for notifications:', registration);
+    
+    // Add notification click handler
+    if ('Notification' in window) {
+      // Handle notification clicks when app is open
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'NOTIFICATION_CLICK') {
+          const { chatId, isGroup } = event.data;
+          console.log('Notification clicked, navigate to:', chatId, isGroup);
+          // The app will handle navigation through the store
+          window.focus();
+        }
+      });
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error registering service worker:', error);
+    return false;
+  }
+};
+
+// Test notification function
+export const showTestNotification = () => {
+  if (!isNotificationSupported() || Notification.permission !== 'granted') {
+    console.warn('Notifications not available or not granted');
+    return false;
+  }
+
+  try {
+    const notification = new Notification('Test Notification', {
+      body: 'This is a test notification from Tezzeract Chat!',
+      icon: '/chat.svg',
+      badge: '/chat.svg',
+      vibrate: [200, 100, 200],
+      tag: 'test-notification',
+      requireInteraction: false
+    });
+
+    notification.onclick = () => {
+      console.log('Test notification clicked');
+      window.focus();
+      notification.close();
+    };
+
+    return true;
+  } catch (error) {
+    console.error('Error showing test notification:', error);
+    return false;
+  }
+};

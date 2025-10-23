@@ -2,6 +2,13 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
+import { 
+  createMessageNotification, 
+  shouldShowNotification, 
+  setBadgeCount,
+  getNotificationSettings
+} from "../lib/notificationUtils";
+import { playMessageSound, playGroupMessageSound } from "../lib/soundUtils";
 
 export const useChatStore = create((set, get) => ({
   messages: [],
@@ -461,6 +468,33 @@ export const useChatStore = create((set, get) => ({
       
       if (isMessageForDifferentChat && isMessageFromOther) {
         get().incrementUnreadCount(targetChatId);
+        
+        // Show notification for new message
+        const settings = getNotificationSettings();
+        if (settings.enabled && !settings.doNotDisturb) {
+          const senderName = actualMessage.senderId?.fullName || 'Someone';
+          const chatType = isGroup ? 'group' : 'user';
+          
+          if (shouldShowNotification(actualMessage, chatId, authUserId)) {
+            createMessageNotification(actualMessage, senderName, chatType);
+            
+            // Play sound if enabled
+            if (settings.sound) {
+              if (isGroup) {
+                playGroupMessageSound();
+              } else {
+                playMessageSound();
+              }
+            }
+          }
+        }
+        
+        // Update badge count
+        if (settings.badge !== false) {
+          const totalUnread = Object.values(get().unreadCounts).reduce((sum, count) => sum + count, 0);
+          setBadgeCount(totalUnread + 1);
+        }
+        
         return;
       }
 
@@ -493,6 +527,13 @@ export const useChatStore = create((set, get) => ({
   setSelectedChat: (chat) => {
     if (chat) {
       get().clearUnreadCount(chat._id);
+      
+      // Update badge count when opening a chat
+      const settings = getNotificationSettings();
+      if (settings.badge !== false) {
+        const totalUnread = Object.values(get().unreadCounts).reduce((sum, count) => sum + count, 0);
+        setBadgeCount(totalUnread);
+      }
     }
     set({ selectedChat: chat });
   },

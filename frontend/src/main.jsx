@@ -5,6 +5,7 @@ import App from "./App.jsx";
 
 import { BrowserRouter } from "react-router-dom";
 import { registerSW } from 'virtual:pwa-register';
+import { registerServiceWorkerNotifications, clearBadge } from './lib/notificationUtils';
 
 // Register service worker for PWA
 const updateSW = registerSW({
@@ -16,6 +17,20 @@ const updateSW = registerSW({
   onOfflineReady() {
     console.log('App ready to work offline');
   },
+  onRegistered() {
+    console.log('Service Worker registered');
+    registerServiceWorkerNotifications();
+  },
+});
+
+// Clear badge when app is opened
+if (document.hasFocus()) {
+  clearBadge();
+}
+
+// Clear badge when app gains focus
+window.addEventListener('focus', () => {
+  clearBadge();
 });
 
 createRoot(document.getElementById("root")).render(
