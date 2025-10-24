@@ -20,33 +20,40 @@ const PullToRefresh = ({ onRefresh, children }) => {
     let currentY = 0;
     let isDragging = false;
 
-    const isScrolledToTop = () => {
-      // Check if window is at top OR if container is at top
-      return window.scrollY === 0 || container.scrollTop === 0;
-    };
-
     const handleTouchStart = (e) => {
-      // Only allow pull-to-refresh if at the top
-      if (isScrolledToTop() && !isRefreshing) {
-        startYPosition = e.touches[0].clientY;
+      // Only enable pull-to-refresh if touch starts near the top of the screen
+      // This prevents it from interfering with normal scrolling in chat
+      const touchY = e.touches[0].clientY;
+      startYPosition = touchY;
+      
+      // Only consider pull-to-refresh if touch starts in the top 100px of viewport
+      if (touchY < 100) {
         setCanPull(true);
       }
     };
 
     const handleTouchMove = (e) => {
-      if (!canPull || isRefreshing) return;
+      if (isRefreshing) return;
 
       currentY = e.touches[0].clientY;
       const diff = currentY - startYPosition;
 
-      // Only pull down, not up, and only when at top
-      if (diff > 0 && isScrolledToTop()) {
+      // If user is scrolling down (negative diff), immediately disable
+      if (diff < 0) {
+        setCanPull(false);
+        setPullDistance(0);
+        return;
+      }
+
+      // Only activate pull-to-refresh if:
+      // 1. canPull is true (touch started near top)
+      // 2. Pulling DOWN significantly (> 30px to avoid accidental triggers)
+      // 3. Window scrollY is 0
+      if (canPull && diff > 30 && window.scrollY === 0) {
         isDragging = true;
         
         // Prevent default scrolling when pulling
-        if (diff > 10) {
-          e.preventDefault();
-        }
+        e.preventDefault();
         
         // Apply resistance to the pull
         const resistance = 0.5;
