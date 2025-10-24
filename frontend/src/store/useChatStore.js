@@ -462,23 +462,41 @@ export const useChatStore = create((set, get) => ({
       get().setLastMessage(targetChatId, populatedNewMessage, isGroup);
       get().setLastMessageTime(targetChatId, Date.now());
 
-      // Handle unread counts if the message is for a different chat and not sent by me
-      const isMessageForDifferentChat = (isGroup && targetChatId !== chatId) || (!isGroup && targetChatId !== chatId);
+      // Check if message is from another user
       const isMessageFromOther = senderId !== authUserId;
+      
+      // Don't process own messages
+      if (!isMessageFromOther) {
+        console.log('Ignoring own message');
+        return;
+      }
+      
+      // Determine if this is for a different chat OR the app is not focused
+      const isMessageForDifferentChat = (isGroup && targetChatId !== chatId) || (!isGroup && targetChatId !== chatId);
+      const isAppInBackground = document.hidden || !document.hasFocus();
+      const shouldNotify = isMessageForDifferentChat || isAppInBackground;
       
       console.log('Notification check:', {
         isMessageForDifferentChat,
         isMessageFromOther,
+        isAppInBackground,
+        shouldNotify,
         targetChatId,
         currentChatId: chatId,
         senderId,
         authUserId,
-        isGroup
+        isGroup,
+        documentHidden: document.hidden,
+        hasFocus: document.hasFocus()
       });
       
-      if (isMessageForDifferentChat && isMessageFromOther) {
+      // If message is for a different chat, increment unread count
+      if (isMessageForDifferentChat) {
         get().incrementUnreadCount(targetChatId);
-        
+      }
+      
+      // Show notification if message is for different chat OR app is in background
+      if (shouldNotify) {
         // Show notification for new message
         const settings = getNotificationSettings();
         console.log('Notification settings:', settings);
@@ -511,7 +529,10 @@ export const useChatStore = create((set, get) => ({
           setBadgeCount(totalUnread + 1);
         }
         
-        return;
+        // If message is for different chat, return early
+        if (isMessageForDifferentChat) {
+          return;
+        }
       }
 
       // Add the message to the current chat's messages if it's the selected chat

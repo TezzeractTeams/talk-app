@@ -148,23 +148,6 @@ export const shouldShowNotification = (message, currentChatId, authUserId) => {
     return false;
   }
 
-  // Don't show if user is currently viewing this chat and app is focused
-  const chatId = message.receiverId || message.groupId;
-  const isViewingChat = chatId === currentChatId;
-  const hasFocus = document.hasFocus();
-  
-  console.log('Notification view check:', {
-    chatId,
-    currentChatId,
-    isViewingChat,
-    hasFocus
-  });
-  
-  if (isViewingChat && hasFocus) {
-    console.log('Blocking notification: viewing chat and app focused');
-    return false;
-  }
-
   // Check if notifications are enabled
   if (Notification.permission !== 'granted') {
     console.log('Blocking notification: permission not granted');
