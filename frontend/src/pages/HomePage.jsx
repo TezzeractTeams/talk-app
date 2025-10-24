@@ -48,16 +48,16 @@ const HomePage = () => {
 
   return (
     <div className="h-screen pt-14 md:pt-16">
-      <div className="h-full bg-neutral-900">
-        {/* Notification Prompt */}
-        {showNotificationPrompt && (
-          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-lg px-4">
-            <NotificationPrompt onClose={() => setShowNotificationPrompt(false)} />
-          </div>
-        )}
-        
-        {/* Pull to Refresh - only active on mobile */}
-        <PullToRefresh onRefresh={handleRefresh}>
+      {/* Notification Prompt */}
+      {showNotificationPrompt && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-lg px-4">
+          <NotificationPrompt onClose={() => setShowNotificationPrompt(false)} />
+        </div>
+      )}
+      
+      {/* Pull to Refresh - only active on mobile */}
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="h-full bg-neutral-900">
           <div className="flex h-full overflow-hidden relative">
             {/* Sidebar - hidden on mobile when chat is selected */}
             <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} md:relative absolute md:static inset-0 z-20 md:z-0`}>
@@ -69,8 +69,8 @@ const HomePage = () => {
               {!selectedChat ? <NoChatSelected /> : <ChatContainer setShowSidebar={setShowSidebar} />}
             </div>
           </div>
-        </PullToRefresh>
-      </div>
+        </div>
+      </PullToRefresh>
     </div>
   );
 };

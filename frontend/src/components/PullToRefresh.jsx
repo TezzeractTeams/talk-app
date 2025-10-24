@@ -20,11 +20,14 @@ const PullToRefresh = ({ onRefresh, children }) => {
     let currentY = 0;
     let isDragging = false;
 
+    const isScrolledToTop = () => {
+      // Check if window is at top OR if container is at top
+      return window.scrollY === 0 || container.scrollTop === 0;
+    };
+
     const handleTouchStart = (e) => {
-      // Only allow pull-to-refresh if at the top of the page
-      const isAtTop = container.scrollTop === 0;
-      
-      if (isAtTop && !isRefreshing) {
+      // Only allow pull-to-refresh if at the top
+      if (isScrolledToTop() && !isRefreshing) {
         startYPosition = e.touches[0].clientY;
         setCanPull(true);
       }
@@ -36,8 +39,8 @@ const PullToRefresh = ({ onRefresh, children }) => {
       currentY = e.touches[0].clientY;
       const diff = currentY - startYPosition;
 
-      // Only pull down, not up
-      if (diff > 0 && container.scrollTop === 0) {
+      // Only pull down, not up, and only when at top
+      if (diff > 0 && isScrolledToTop()) {
         isDragging = true;
         
         // Prevent default scrolling when pulling
@@ -93,7 +96,7 @@ const PullToRefresh = ({ onRefresh, children }) => {
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [canPull, pullDistance, isRefreshing, onRefresh]);
+  }, [canPull, pullDistance, isRefreshing, onRefresh, threshold, maxPull]);
 
   // Calculate rotation and opacity for the icon
   const rotation = (pullDistance / threshold) * 360;
@@ -101,7 +104,7 @@ const PullToRefresh = ({ onRefresh, children }) => {
   const shouldShowRefreshIcon = pullDistance > 10 || isRefreshing;
 
   return (
-    <div ref={containerRef} className="relative h-full overflow-y-auto">
+    <div ref={containerRef} className="relative h-full">
       {/* Pull to refresh indicator */}
       {shouldShowRefreshIcon && (
         <div
@@ -125,6 +128,7 @@ const PullToRefresh = ({ onRefresh, children }) => {
 
       {/* Content */}
       <div
+        className="h-full"
         style={{
           transform: isRefreshing ? 'translateY(0)' : `translateY(${Math.min(pullDistance * 0.3, 30)}px)`,
           transition: isRefreshing || pullDistance === 0 ? 'transform 0.3s ease-out' : 'none',
