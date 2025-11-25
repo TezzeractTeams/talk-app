@@ -16,7 +16,16 @@ self.addEventListener('notificationclick', (event) => {
       // Check if there's already a window open
       for (const client of clientList) {
         if (client.url.includes(url) && 'focus' in client) {
-          return client.focus();
+          return client.focus().then((focusedClient) => {
+            if (focusedClient && data.chatId) {
+              focusedClient.postMessage({
+                type: 'NOTIFICATION_CLICK',
+                chatId: data.chatId,
+                isGroup: data.isGroup
+              });
+            }
+            return focusedClient;
+          });
         }
       }
       

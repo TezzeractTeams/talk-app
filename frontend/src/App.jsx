@@ -10,9 +10,11 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/useAuthStore";
 
 import { useEffect } from "react";
+import { registerServiceWorkerNotifications } from "./lib/notificationUtils";
 
 import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
+import NotificationPrompt from "./components/NotificationPrompt";
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth, onlineUsers } = useAuthStore();
@@ -21,6 +23,7 @@ const App = () => {
 
   useEffect(() => {
     checkAuth();
+    registerServiceWorkerNotifications();
   }, [checkAuth]);
 
   console.log({ authUser });
@@ -45,6 +48,7 @@ const App = () => {
       </Routes>
 
       <Toaster />
+      <NotificationPrompt />
     </div>
   );
 };

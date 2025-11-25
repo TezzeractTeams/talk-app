@@ -1,4 +1,5 @@
 // Notification utilities for push notifications
+import { useChatStore } from '../store/useChatStore';
 
 export const isNotificationSupported = () => {
   return 'Notification' in window && 'serviceWorker' in navigator;
@@ -199,8 +200,17 @@ export const registerServiceWorkerNotifications = async () => {
         if (event.data && event.data.type === 'NOTIFICATION_CLICK') {
           const { chatId, isGroup } = event.data;
           console.log('Notification clicked, navigate to:', chatId, isGroup);
-          // The app will handle navigation through the store
+          
           window.focus();
+
+          const store = useChatStore.getState();
+          if (isGroup) {
+             const group = store.groups.find(g => g._id === chatId);
+             if (group) store.setSelectedChat(group);
+          } else {
+             const user = store.users.find(u => u._id === chatId);
+             if (user) store.setSelectedChat(user);
+          }
         }
       });
     }

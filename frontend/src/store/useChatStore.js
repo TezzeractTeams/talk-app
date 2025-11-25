@@ -512,6 +512,20 @@ export const useChatStore = create((set, get) => ({
             console.log('Creating notification for message from:', senderName);
             createMessageNotification(actualMessage, senderName, chatType);
             
+            // Show in-app toast if app is in foreground but user is in different chat
+            if (isMessageForDifferentChat && !document.hidden) {
+               let toastBody = actualMessage.text || '';
+               if (actualMessage.image) toastBody = '📷 Image';
+               if (actualMessage.file) toastBody = '📎 File';
+               
+               toast.success(`${senderName}: ${toastBody}`, {
+                 id: actualMessage._id,
+                 duration: 4000,
+                 position: 'top-center',
+                 icon: '💬',
+               });
+            }
+
             // Play sound if enabled
             if (settings.sound) {
               if (isGroup) {
