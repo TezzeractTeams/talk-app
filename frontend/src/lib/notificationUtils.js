@@ -183,7 +183,11 @@ export const saveNotificationSettings = (settings) => {
   localStorage.setItem('notificationSettings', JSON.stringify(settings));
 };
 
+let isSwRegistered = false;
+
 export const registerServiceWorkerNotifications = async () => {
+  if (isSwRegistered) return true;
+
   if (!('serviceWorker' in navigator)) {
     console.log('Service Worker not supported');
     return false;
@@ -215,6 +219,7 @@ export const registerServiceWorkerNotifications = async () => {
       });
     }
     
+    isSwRegistered = true;
     return true;
   } catch (error) {
     console.error('Error registering service worker:', error);

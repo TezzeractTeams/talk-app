@@ -10,7 +10,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/useAuthStore";
 
 import { useEffect } from "react";
-import { registerServiceWorkerNotifications } from "./lib/notificationUtils";
 
 import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
@@ -23,7 +22,6 @@ const App = () => {
 
   useEffect(() => {
     checkAuth();
-    registerServiceWorkerNotifications();
   }, [checkAuth]);
 
   console.log({ authUser });
